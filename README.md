@@ -3,8 +3,24 @@
 This repo contains our end-to-end pipeline for the *NYU DL* Kaggle competition.
 We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate using a **forced-choice decoder** (compare the model’s likelihood of the tokens “True” vs “False”), export the best adapter, and produce `submission_final.csv`.
 
-**Best public LB so far:** 0.82518
+**Best public LB so far:** **0.82518**
 **Hardware used:** NVIDIA A100 (bf16)
+
+---
+
+## 📦 Best-adapter weights (download)
+
+GitHub can’t host large binaries, so the LoRA adapter weights are hosted on Google Drive:
+
+**Download:** [https://drive.google.com/drive/folders/1Em9LdMd2pCsrDPk-IGtT2zrTblnjRcp9?usp=sharing](https://drive.google.com/drive/folders/1Em9LdMd2pCsrDPk-IGtT2zrTblnjRcp9?usp=sharing)
+
+After download, place **`adapter_model.safetensors`** inside the repo at:
+
+```
+best-adapter/adapter_model.safetensors
+```
+
+> The folder already contains `adapter_config.json` and tokenizer metadata; only the `.safetensors` file is large and hosted externally.
 
 ---
 
@@ -13,13 +29,13 @@ We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate usi
 * **best-adapter/**
 
   * `adapter_config.json` — PEFT/LoRA configuration
-  * `adapter_model.safetensors` — **adapter weights (required)**
+  * `adapter_model.safetensors` — **adapter weights (required; download from Drive)**
   * `tokenizer_config.json`, `special_tokens_map.json`, `tokenizer.json` — tokenizer metadata
 * **rpm_dl_midterm.ipynb** — notebook to train, validate, export, and infer
 * **submission_final.csv** — latest competition submission
 * **README.md** — this file
 
-> If `adapter_model.safetensors` is missing, re-export from a trained run (or re-train briefly) so inference can attach the adapter to the base model.
+> If `adapter_model.safetensors` is missing, download it from the Drive link above (or re-export from a trained run).
 
 ---
 
@@ -38,7 +54,7 @@ We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate usi
 
 1. **Model & quantization:** load Meta-LLaMA-3-8B in 4-bit (bitsandbytes) with bf16 compute; Flash-Attention 2 if available.
 2. **Prompting:** supervised fine-tuning with an instruction template that shows the Question, the proposed Solution, and the target Output as either `True` or `False`.
-3. **LoRA:** apply parameter-efficient fine-tuning (attention-only adapters recommended).
+3. **LoRA:** apply parameter-efficient fine-tuning (attention + MLP adapters in our best run).
 4. **Sequence packing:** pack multiple samples per sequence to increase tokens/sec.
 5. **Optimization:** AdamW (8-bit), cosine schedule with warmup, regular validation and checkpoint saving.
 6. **Model selection:** keep `load_best_model_at_end` and select by lowest validation loss.
@@ -52,14 +68,14 @@ We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate usi
 
 * **Attach the adapter** from `best-adapter/` to the 4-bit LLaMA-3 base model.
 * Use **forced-choice decoding**: compute the model’s likelihood for the literal strings **“True”** and **“False”** given the prompt context; pick the higher one.
-* **Bias tuning:** sweep a small scalar offset on the decision margin (difference in log-likelihoods) over a validation set and fix the best value; this typically yields **+0.3 to +1.5 percentage points**.
+* **Bias tuning:** sweep a small scalar offset on the decision margin (difference in log-likelihoods) over a validation set and fix the best value; this typically yields **+0.3 to +1.5 pp**.
 
 ---
 
 ## Reproducing `submission_final.csv`
 
 1. Train with regular evaluation and `load_best_model_at_end`.
-2. Export the best adapter to `best-adapter/`.
+2. Export the best adapter to `best-adapter/` (or use the Drive file).
 3. Validate, tune the decision bias, then run on the test split.
 4. Save a two-column CSV: `ID` (0..9999), `is_correct` (True/False).
 
@@ -77,7 +93,7 @@ We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate usi
 
 **Common fixes**
 
-* TRL/Trainer signature errors around `tokenizer` / `max_seq_length`: remove those constructor arguments or upgrade TRL into the range above.
+* TRL/Trainer signature errors around `tokenizer` / `max_seq_length`: remove those constructor args or upgrade TRL into the range above.
 * `eval_strategy=steps` but no eval dataset: either pass an eval split or set evaluation to “no”.
 * `AcceleratorState ... distributed_type`: restart the runtime/kernel before creating a new trainer to clear state.
 
