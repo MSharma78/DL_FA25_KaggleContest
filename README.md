@@ -1,4 +1,4 @@
-# DL_FA25_KAGGLECONTEST — LLaMA-3 LoRA for Math Solution Verification
+# LLaMA-3 LoRA for Math Solution Verification
 
 This repo contains our end-to-end pipeline for the *NYU DL* Kaggle competition.
 We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate using a **forced-choice decoder** (compare the model’s likelihood of the tokens “True” vs “False”), export the best adapter, and produce `submission_final.csv`.
@@ -8,19 +8,29 @@ We fine-tune **meta-llama/Meta-Llama-3-8B** in 4-bit with **LoRA**, validate usi
 
 ---
 
-## 📦 Best-adapter weights (download)
+## 📦 Best-adapter folder (download)
 
-GitHub can’t host large binaries, so the LoRA adapter weights are hosted on Google Drive:
+GitHub can’t host large binaries easily, so the full **`best-adapter/`** directory (including the large `.safetensors` file) is stored on Google Drive:
 
-**Download:** [https://drive.google.com/drive/folders/1Em9LdMd2pCsrDPk-IGtT2zrTblnjRcp9?usp=sharing](https://drive.google.com/drive/folders/1Em9LdMd2pCsrDPk-IGtT2zrTblnjRcp9?usp=sharing)
+**Download folder:**
+[https://drive.google.com/drive/folders/1Em9LdMd2pCsrDPk-IGtT2zrTblnjRcp9?usp=sharing](https://drive.google.com/drive/folders/1Em9LdMd2pCsrDPk-IGtT2zrTblnjRcp9?usp=sharing)
 
-After download, place **`adapter_model.safetensors`** inside the repo at:
+After downloading, place the folder in the repo root so the structure looks like:
 
+```text
+DL_FA25_KAGGLECONTEST/
+  best-adapter/
+    adapter_config.json
+    adapter_model.safetensors
+    tokenizer.json
+    tokenizer_config.json
+    special_tokens_map.json
+  rpm_dl_midterm.ipynb
+  submission_final.csv
+  README.md
 ```
-best-adapter/adapter_model.safetensors
-```
 
-> The folder already contains `adapter_config.json` and tokenizer metadata; only the `.safetensors` file is large and hosted externally.
+If you already have a `best-adapter/` directory from the repo, you can simply **overwrite it** with the downloaded one to ensure `adapter_model.safetensors` is present.
 
 ---
 
@@ -29,13 +39,11 @@ best-adapter/adapter_model.safetensors
 * **best-adapter/**
 
   * `adapter_config.json` — PEFT/LoRA configuration
-  * `adapter_model.safetensors` — **adapter weights (required; download from Drive)**
+  * `adapter_model.safetensors` — **adapter weights (required; from Drive)**
   * `tokenizer_config.json`, `special_tokens_map.json`, `tokenizer.json` — tokenizer metadata
 * **rpm_dl_midterm.ipynb** — notebook to train, validate, export, and infer
 * **submission_final.csv** — latest competition submission
 * **README.md** — this file
-
-> If `adapter_model.safetensors` is missing, download it from the Drive link above (or re-export from a trained run).
 
 ---
 
@@ -75,7 +83,7 @@ best-adapter/adapter_model.safetensors
 ## Reproducing `submission_final.csv`
 
 1. Train with regular evaluation and `load_best_model_at_end`.
-2. Export the best adapter to `best-adapter/` (or use the Drive file).
+2. Export the best adapter to `best-adapter/` (or download it from Drive).
 3. Validate, tune the decision bias, then run on the test split.
 4. Save a two-column CSV: `ID` (0..9999), `is_correct` (True/False).
 
